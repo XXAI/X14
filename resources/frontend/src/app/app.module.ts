@@ -31,6 +31,8 @@ import { SecurityModule } from './security/security.module';
 import { ProfileModule } from './profile/profile.module';
 import { DevToolsModule } from './dev-tools/dev-tools.module';
 
+import { ConcentradosModule } from './concentrados/concentrados.module';
+
 @NgModule({
   declarations: [
     AppComponent,
@@ -53,6 +55,7 @@ import { DevToolsModule } from './dev-tools/dev-tools.module';
     DevToolsModule,
     ProfileModule,
     AppRoutingModule,
+    ConcentradosModule,
     WildcardRoutingModule,
   ],
   providers: [

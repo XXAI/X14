@@ -71,6 +71,19 @@ export class FormComponent implements OnInit {
   filteredPermissions$: Observable<any[]>;
   selectedPermissions: any[] = [];
 
+  //Para el filtro de Direcciones
+  catalogDirecciones: any[] = [];
+  listOfDirecciones$: Observable<any[]>;
+  filterInputDirecciones: FormControl = new FormControl('');
+  filterInputDirecciones$: Observable<string> = this.filterInputDirecciones.valueChanges.pipe(startWith(''));
+  filteredDirecciones$: Observable<any[]>;
+  selectedDireccionesControl:any = {};
+  selectedDirecciones: any[] = [];
+  selectedDireccionProyectos: any[] = [];
+  assignedProyectos: any[] = [];
+  deniedProyectos: any[] = [];
+  selectedDireccionChipId: number = 0;
+
   ngOnInit() {
     this.authUser = this.authService.getUserData();
 
@@ -276,6 +289,67 @@ export class FormComponent implements OnInit {
     //console.log(this.assignedPermissions);
   }
 
+  removeDireccion(index){
+    let role = this.selectedRoles[index];
+    this.selectedRoles.splice(index,1);
+    this.selectedRolesControl[role.id] = false;
+
+    if(role.id == this.selectedRoleChipId){
+      this.selectedRoleChipId = 0;
+    }
+
+    for(let i in role.permissions){
+      let permission = role.permissions[i];
+      let indexOfRole = this.assignedPermissions[permission.id].inRoles.indexOf(role.id);
+      this.assignedPermissions[permission.id].inRoles.splice(indexOfRole,1);
+
+      if(this.assignedPermissions[permission.id].inRoles.length <= 0){
+        delete this.assignedPermissions[permission.id];
+      }
+    }
+    //this.usuarioForm.get('roles').patchValue(this.selectedRoles);
+  }
+
+  selectDireccion(direccion){
+    //Si el Rol no esta seleccionado
+    if(!this.selectedDireccionesControl[direccion.id]){
+
+      //Lo agregamos a la lista de Direcciones;
+      this.selectedDirecciones.push(direccion);
+      this.selectedDireccionesControl[direccion.id] = true; 
+      
+      //Agregamos los permisos de la direccion a un arreglo global de permisos
+      for(let i in direccion.proyectos){
+        let proyecto = direccion.proyectos[i];
+        
+        if(!this.assignedProyectos[proyecto.id]){
+          this.assignedProyectos[proyecto.id] = {
+            active: true,
+            clave: proyecto.clave,
+            description: proyecto.description,
+          }
+        }else{
+          //this.assignedProyectos[proyecto.id].inRoles.push(direccion.id);
+        }
+      }
+
+      this.showProyectosList(direccion);
+      //this.usuarioForm.get('roles').patchValue(this.selectedRoles);
+    }else{
+      //Si el rol ya esta seleccionado, lo quitamos
+      let direccionIndex = this.selectedDirecciones.findIndex(item => item.id == direccion.id);
+      this.removeDireccion(direccionIndex);
+    }
+  }
+
+  showProyectosList(direccion){ 
+    //
+  }
+
+  changeProyectoStatus(proyecto){
+    //
+  }
+
   accionGuardar(){
     if(this.usuarioForm.valid){
       if(this.usuarioForm.get('password').value){
@@ -356,5 +430,8 @@ export class FormComponent implements OnInit {
   }
   clearPermissionsFilter(){
     this.filterInputPermissions.setValue('');
+  }
+  clearDireccionesFilter(){
+    this.filterInputDirecciones.setValue('');
   }
 }

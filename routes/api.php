@@ -31,13 +31,18 @@ Route::get('enviar-recuperar-pass',             'API\Admin\MailerController@envi
 
 Route::group(['middleware'=>'auth'],function($router){
     Route::apiResource('user',          'API\Admin\UserController');
-    Route::get('user-catalogs', 'API\Admin\UserController@getCatalogs');
+    Route::get('user-catalogs',         'API\Admin\UserController@getCatalogs');
 
     Route::apiResource('permission',    'API\Admin\PermissionController');
     Route::apiResource('role',          'API\Admin\RoleController');
     Route::apiResource('profile',       'API\ProfileController')->only([ 'show', 'update']);
 
     //Modulos del Sistema
+    Route::apiResource('proyectos',              'API\Modulos\ProyectosController')->only(['index','show']);
+    Route::get('concentrado-proyecto/{id}',      'API\Modulos\ConcentradosController@obtenerConcentrado');
+    Route::get('concentrado-checklist',          'API\Modulos\ConcentradosController@obtenerChecklist');
+    Route::post('guardar-reporte',               'API\Modulos\ConcentradosController@guardarReporte');
+
     /**
      *  Modulo de Reportes
      */

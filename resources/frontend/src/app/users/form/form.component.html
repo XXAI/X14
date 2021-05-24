@@ -57,7 +57,7 @@
                         </div>
                         
                         <br>
-                        <mat-tab-group #metaData [color]="'primary'" [backgroundColor]="'accent'" [selectedIndex]="(usuarioForm.get('is_superuser').value)?(2):(0)" dynamicHeight >
+                        <mat-tab-group #metaData [color]="'primary'" [backgroundColor]="'accent'" [selectedIndex]="(usuarioForm.get('is_superuser').value)?(3):(0)" dynamicHeight >
                             <mat-tab [disabled]="(usuarioForm.get('is_superuser').value == true)">
                                 <ng-template mat-tab-label>
                                     <span matBadge="{{selectedRoles.length}}" matBadgeSize="medium" matBadgeColor="primary" matBadgePosition="above after" matBadgeOverlap="false" [matBadgeHidden]="selectedRoles.length <= 0">Roles</span>
@@ -163,6 +163,68 @@
                                             </mat-chip-list>
                                             <mat-hint align="end">{{selectedPermissions.length}}</mat-hint>
                                         </mat-form-field>
+                                    </div>
+                                </div>
+                            </mat-tab>
+                            <mat-tab [disabled]="(usuarioForm.get('is_superuser').value == true)">
+                                <ng-template mat-tab-label>
+                                    <span matBadge="{{selectedDirecciones.length}}" matBadgeSize="medium" matBadgeColor="primary" matBadgePosition="above after" matBadgeOverlap="false" [matBadgeHidden]="selectedDirecciones.length <= 0">Direcciones</span>
+                                </ng-template>
+                                <div fxLayout="row" fxLayout.xs="column" class="edit-container">
+                                    <div fxFlex="49" fxFlex.xs="100">
+                                        <div fxLayout="row">
+                                            <mat-form-field fxFlex>
+                                                <input matInput placeholder="Filtrar Direcciones" aria-label="filtrar" [formControl]="filterInputDirecciones">
+                                                <mat-icon *ngIf="!filterInputDirecciones.value" matSuffix>filter_list</mat-icon>
+                                                <button mat-icon-button matSuffix *ngIf="filterInputDirecciones.value"  (click)="clearDireccionesFilter()">
+                                                    <mat-icon>clear</mat-icon>
+                                                </button>
+                                            </mat-form-field>
+                                        </div>
+                                        <div fxLayout="row">
+                                            <mat-action-list fxFlex [ngClass]="'roles-list'" [ngClass.xs]="{'roles-list':false}" [style.xs]="{'height':'auto'}" dense>
+                                                <button mat-list-item *ngFor="let direccion of filteredDirecciones$ | async" (click)="showProyectosList(direccion)">
+                                                    <mat-icon matListIcon *ngIf="(selectedRoleChipId == direccion.id)">arrow_right</mat-icon>
+                                                    <h3 matLine>
+                                                        {{direccion.descripcion}}
+                                                    </h3>
+                                                    <button mat-icon-button (click)="selectDireccion(direccion)">
+                                                        <mat-icon>{{(selectedDireccionesControl[direccion.id])?'check_box':'check_box_outline_blank'}}</mat-icon>
+                                                    </button>
+                                                    <mat-divider></mat-divider>
+                                                </button>
+                                            </mat-action-list>
+                                        </div>
+                                    </div>
+                                    <div fxFlex></div>
+                                    <div fxFlex="49" fxFlex.xs="100">
+                                        <div fxLayout="column">
+                                            <mat-form-field fxFlex fxHide.xs="true">
+                                                <mat-chip-list #chipList aria-label="Direcciones Seleccionados">
+                                                    <mat-chip *ngFor="let direccion of selectedDirecciones; let i = index" [selected]="(selectedDireccionChipId == direccion.id)" [removable]="true" (removed)="removeDireccion(i)" (click)="showProyectosList(direccion)" > <!-- (focusin)="onFocusRoleIn(role)" (focusout)="onFocusRoleOut(role)" -->
+                                                        {{direccion.descripcion}}
+                                                        <mat-icon matChipRemove>cancel</mat-icon>
+                                                    </mat-chip>
+                                                </mat-chip-list>
+                                                <mat-hint align="end">{{selectedDirecciones.length}}</mat-hint>
+                                            </mat-form-field>
+                                            <br>
+                                            <mat-card fxFlex *ngIf="selectedDireccionChipId != 0">
+                                                <mat-card-header>
+                                                    <div fxFlex></div>
+                                                    <button mat-icon-button aria-label="Cerrar lista de proyectos" (click)="selectedDireccionChipId = 0" class="close-card-icon-button">
+                                                        <mat-icon>close</mat-icon>
+                                                    </button>
+                                                </mat-card-header>
+                                                <mat-card-content>
+                                                    <div fxFlexFill fxLayoutGap class="permissions-edit-list">
+                                                        <span fxFlex="50" *ngFor="let proyecto of selectedDireccionProyectos;" class="permission-slide-toggle">
+                                                            <mat-slide-toggle (change)="changeProyectoStatus(proyecto)" [checked]="proyecto.active" matTooltip="{{proyecto.description}}">{{proyecto.clave}}</mat-slide-toggle>
+                                                        </span>
+                                                    </div>
+                                                </mat-card-content>
+                                            </mat-card>
+                                        </div>
                                     </div>
                                 </div>
                             </mat-tab>
