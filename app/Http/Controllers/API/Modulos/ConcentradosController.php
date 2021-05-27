@@ -79,14 +79,33 @@ class ConcentradosController extends Controller
         }
     }
 
+    public function obtenerReporte(Request $request){
+        try{
+            $parametros = $request->all();
+
+            $reporte = Reporte::with('respuestas')
+                                ->where('id',$parametros['reporte_id'])
+                                ->where('auditoria_id',$parametros['auditoria_id'])
+                                ->where('checklist_id',$parametros['checklist_id'])->first();
+
+            $return_data = ['data' => $reporte];
+            
+            return response()->json($return_data,HttpResponse::HTTP_OK);
+        }catch(\Exception $e){
+            return response()->json(['error'=>['message'=>$e->getMessage(),'line'=>$e->getLine()]], HttpResponse::HTTP_CONFLICT);
+        }
+    }
+
     public function guardarReporte(Request $request){
         try{
             $parametros = $request->all();
 
             $concentrado = Concentrado::where('proyecto_id',$parametros['proyecto_id'])->where('direccion_id',$parametros['direccion_id'])->first();
+            $parametros['ultimo_reporte'] = $parametros['fecha'];
             if(!$concentrado){
-                $parametros['ultimo_reporte'] = $parametros['fecha'];
                 $concentrado = Concentrado::create($parametros);
+            }else{
+                $concentrado->update($parametros);
             }
 
             $reporte = Reporte::where('concentrado_id',$concentrado->id)->where('auditoria_id',$parametros['auditoria_id'])->where('checklist_id',$parametros['checklist_id'])->first();
@@ -95,7 +114,24 @@ class ConcentradosController extends Controller
                 $reporte = Reporte::create($parametros);
                 $reporte->respuestas()->createMany($parametros['respuestas']);
             }else{
+                $reporte->update($parametros);
                 $reporte->load('respuestas');
+                $respuestas_guardadas = [];
+                foreach ($reporte->respuestas as $respuesta) {
+                    $respuestas_guardadas[$respuesta->id] = $respuesta;
+                }
+                $crear_respuestas = [];
+                foreach ($parametros['respuestas'] as $respuesta) {
+                    if($respuesta['respuesta_id']){
+                        $editar = $respuestas_guardadas[$respuesta['respuesta_id']];
+                        $editar->update($respuesta);
+                    }else{
+                        $crear_respuestas[] = $respuesta;
+                    }
+                }
+                if(count($crear_respuestas) > 0){
+                    $reporte->respuestas()->createMany($crear_respuestas);
+                }
             }
 
             $return_data['data'] = $request->all();

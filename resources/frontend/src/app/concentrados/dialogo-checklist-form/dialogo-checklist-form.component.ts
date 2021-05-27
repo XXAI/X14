@@ -10,6 +10,7 @@ export interface ChecklistDialogData {
   proyecto_id?: number;
   direccion_id?: number;
   enlace?: string;
+  rel_reportes: any;
 }
 
 @Component({
@@ -33,6 +34,7 @@ export class DialogoChecklistFormComponent implements OnInit {
 
   checklist:any;
   auditorias:any[];
+  respuestas:any;
 
   concentradoForm = this.fb.group({
     'proyecto_id':['',Validators.required],
@@ -45,23 +47,15 @@ export class DialogoChecklistFormComponent implements OnInit {
 
   ngOnInit() {
     this.isLoading = true;
+    this.respuestas = {};
     this.concentradosService.obtenerChecklist().subscribe(
       response => {
         console.log(response);
         if(response.error) {
           let errorMessage = response.error.message;
           this.sharedService.showSnackBar(errorMessage, null, 3000);
+          this.isLoading = false;
         } else {
-          /*let checklist = response.checklist;
-          for (let i in checklist.titulos) {
-            let titulo = checklist.titulos[i];
-            for (let j in titulo.reactivos) {
-              let reactivo = titulo.reactivos[j];
-              reactivo.respuesta = 1;
-              reactivo.no_aplica = 1;
-              reactivo.comentario = '';
-            }
-          }*/
           this.checklist = response.checklist;
           this.auditorias = response.auditorias;
           
@@ -70,16 +64,21 @@ export class DialogoChecklistFormComponent implements OnInit {
           this.concentradoForm.get('checklist_id').patchValue(this.checklist.id);
           this.concentradoForm.get('enlace').patchValue(this.data.enlace);
 
-          if(this.auditorias.length == 1){
-            this.concentradoForm.get('auditoria_id').patchValue(this.auditorias[0].id);
-          }
-
           let fecha_hoy = formatDate(new Date(), 'yyyy-MM-dd', 'en');
           this.concentradoForm.get('fecha').patchValue(fecha_hoy);
-          //this.grupoForm.patchValue(response.data);
-          //this.listaCRs = response.data.lista_c_r;
+
+          if(this.auditorias.length == 1){
+            this.concentradoForm.get('auditoria_id').patchValue(this.auditorias[0].id);
+
+            if(this.data.rel_reportes[this.auditorias[0].id]){
+              this.cargarRespuestas();
+            }else{
+              this.isLoading = false;
+            }
+          }else{
+            this.isLoading = false;
+          }
         }
-        this.isLoading = false;
       },
       errorResponse =>{
         var errorMessage = "Ocurrió un error.";
@@ -90,6 +89,65 @@ export class DialogoChecklistFormComponent implements OnInit {
         this.isLoading = false;
       }
     );
+  }
+
+  cargarRespuestas(){
+    this.isLoading = true;
+    this.respuestas = {};
+    let auditoria_id = this.concentradoForm.get('auditoria_id').value;
+    
+    if(this.data.rel_reportes[auditoria_id]){
+      let reporte_id = this.data.rel_reportes[auditoria_id];
+      let params = {reporte_id: reporte_id, auditoria_id: auditoria_id, checklist_id:this.checklist.id};
+
+      this.concentradosService.obtenerReporte(params).subscribe(
+        response => {
+          if(response.error) {
+            let errorMessage = response.error.message;
+            this.sharedService.showSnackBar(errorMessage, null, 3000);
+          } else {
+            this.concentradoForm.get('enlace').patchValue(response.data.enlace);
+            this.concentradoForm.get('fecha').patchValue(response.data.fecha);
+
+            for(let i in response.data.respuestas){
+              let respuesta = response.data.respuestas[i];
+              this.respuestas[respuesta.checklist_reactivo_id] = {
+                id: respuesta.id,
+                respuesta: respuesta.tiene_informacion,
+                no_aplica: respuesta.no_aplica,
+                comentarios: respuesta.comentarios
+              };
+            }
+            for(let i in this.checklist.titulos){
+              let titulo = this.checklist.titulos[i];
+              for(let j in titulo.reactivos){
+                let reactivo = titulo.reactivos[j];
+                reactivo.respuesta = 0;
+                reactivo.comentarios = '';
+                reactivo.no_aplica = 0;
+                reactivo.respuesta_id = null;
+
+                if(this.respuestas[reactivo.id]){
+                  reactivo.respuesta = this.respuestas[reactivo.id].respuesta;
+                  reactivo.comentarios = this.respuestas[reactivo.id].comentarios;
+                  reactivo.no_aplica = (this.respuestas[reactivo.id].no_aplica)?1:0;
+                  reactivo.respuesta_id = this.respuestas[reactivo.id].id;
+                }
+              }
+            }
+          }
+          this.isLoading = false;
+        },
+        errorResponse =>{
+          var errorMessage = "Ocurrió un error.";
+          if(errorResponse.status == 409){
+            errorMessage = errorResponse.error.message;
+          }
+          this.sharedService.showSnackBar(errorMessage, null, 3000);
+          this.isLoading = false;
+        }
+      );
+    }
   }
 
   cambiarEstatusTitulo(titulo){
@@ -118,17 +176,19 @@ export class DialogoChecklistFormComponent implements OnInit {
               checklist_reactivo_id:reactivo.id,
               tiene_informacion: reactivo.respuesta,
               no_aplica: reactivo.no_aplica,
-              comentarios: reactivo.comentarios
+              comentarios: reactivo.comentarios,
+              respuesta_id: reactivo.respuesta_id,
             });
           }
         }
       }
       this.isSaving = true
+      this.isLoading = true;
       
       this.concentradosService.guardarReporte(reporte_data).subscribe(
         response => {
-          console.log(response);
           this.isSaving = false;
+          this.isLoading = false;
           if(response.error) {
             let errorMessage = response.error.message;
             this.sharedService.showSnackBar(errorMessage, null, 3000);
@@ -140,6 +200,7 @@ export class DialogoChecklistFormComponent implements OnInit {
         },
         errorResponse =>{
           this.isSaving = false;
+          this.isLoading = false;
           var errorMessage = "Ocurrió un error.";
           if(errorResponse.status == 409){
             errorMessage = errorResponse.error.message;

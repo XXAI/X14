@@ -69,6 +69,7 @@ export class DialogoConcentradoProyectoComponent implements OnInit {
                 let reporte = response.data.reportes[i];
                 let item_reporte = {
                   id: reporte.id,
+                  auditoria_id: reporte.auditoria.id,
                   auditoria: reporte.auditoria.descripcion,
                   total_reactivos: reporte.total_checklist_reactivos,
                   total_no_aplica: reporte.respuestas[0].total_no_aplica,
@@ -115,7 +116,12 @@ export class DialogoConcentradoProyectoComponent implements OnInit {
         proyecto_id: this.proyecto.id,
         direccion_id: this.proyecto.direccion_id,
         enlace: this.concentrado.enlace,
+        rel_reportes:{},
       }
+    }
+
+    for(let i in this.reportes){
+      configDialog.data.rel_reportes[this.reportes[i].auditoria_id] = this.reportes[i].id;
     }
     
     const dialogRef = this.dialog.open(DialogoChecklistFormComponent, configDialog);

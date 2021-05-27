@@ -12,6 +12,7 @@ export class ConcentradosService {
   url_proyectos = `${environment.base_url}/proyectos`;
   url_concentrados = `${environment.base_url}/concentrado-proyecto`;
   url_checklist = `${environment.base_url}/concentrado-checklist`;
+  url_respuestas =  `${environment.base_url}/reporte-respuestas`;
   url_reporte =  `${environment.base_url}/guardar-reporte`;
 
   constructor(private http: HttpClient) { }
@@ -38,6 +39,14 @@ export class ConcentradosService {
         return response;
       }
     ));
+  }
+
+  obtenerReporte(payload):Observable<any> {
+    return this.http.get<any>(this.url_respuestas,{params: payload}).pipe(
+      map( response => {
+        return response;
+      })
+    );
   }
 
   guardarReporte(payload) {
