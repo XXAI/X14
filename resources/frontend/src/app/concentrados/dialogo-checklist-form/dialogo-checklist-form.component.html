@@ -42,7 +42,7 @@
                                 <mat-checkbox [(ngModel)]="reactivo.no_aplica">No aplica</mat-checkbox>
                             </div>
                             <div fxFlex="none">
-                                <button matTooltip="Agregar Comentario" mat-icon-button><span class="material-icons-outlined">chat_bubble_outline</span></button>
+                                <button matTooltip="Agregar Comentario" (click)="openComentarios(reactivo)" mat-icon-button><span class="material-icons-outlined">{{(reactivo.comentarios)?'message':'chat_bubble_outline'}}</span></button>
                             </div>
                         </div>
                     </div>

@@ -79,6 +79,8 @@ export class DialogoConcentradoProyectoComponent implements OnInit {
                 };
                 this.reportes.push(item_reporte);
               }
+
+              this.puedeImprimir = true;
             }
             //this.grupoForm.patchValue(response.data);
             //this.listaCRs = response.data.lista_c_r;
@@ -126,9 +128,20 @@ export class DialogoConcentradoProyectoComponent implements OnInit {
     
     const dialogRef = this.dialog.open(DialogoChecklistFormComponent, configDialog);
 
-    dialogRef.afterClosed().subscribe(valid => {
-      if(valid){
-        //this.loadGruposData(this.pageEvent);
+    dialogRef.afterClosed().subscribe(response => {
+      if(response){
+        this.concentrado = {
+          enlace: response.datos_concentrado.enlace,
+          fecha: response.datos_concentrado.fecha,
+        }
+        let item_reporte = response.item_reporte;
+        let item_index = this.reportes.findIndex(x => x.id === item_reporte.id);
+        if(item_index >= 0){
+          this.reportes[item_index] = item_reporte;
+        }else{
+          this.reportes.push(item_reporte);
+        }
+        this.puedeImprimir = true;
       }
     });
   }

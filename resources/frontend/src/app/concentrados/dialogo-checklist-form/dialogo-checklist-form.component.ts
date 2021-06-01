@@ -1,10 +1,11 @@
 import { Component, Inject, OnInit } from '@angular/core';
-import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { FormBuilder, Validators } from '@angular/forms';
 import { CustomValidator } from '../../utils/classes/custom-validator';
 import { ConcentradosService  } from '../concentrados.service';
 import { SharedService } from '../../shared/shared.service';
 import { formatDate } from '@angular/common';
+import { DialogoComentariosRespuestaComponent } from '../dialogo-comentarios-respuesta/dialogo-comentarios-respuesta.component';
 
 export interface ChecklistDialogData {
   proyecto_id?: number;
@@ -27,6 +28,7 @@ export class DialogoChecklistFormComponent implements OnInit {
     private fb: FormBuilder,
     private sharedService: SharedService,
     private concentradosService: ConcentradosService,
+    public dialog: MatDialog,
   ) { }
 
   isSaving:boolean = false;
@@ -162,6 +164,26 @@ export class DialogoChecklistFormComponent implements OnInit {
     this.dialogRef.close();
   }
 
+  openComentarios(reactivo){
+    let configDialog:any;
+    configDialog = {
+      width: '50%',
+      data:{
+        reactivo: reactivo.descripcion,
+        reactivo_id: reactivo.id,
+        comentarios: reactivo.comentarios,
+      }
+    }
+    
+    const dialogRef = this.dialog.open(DialogoComentariosRespuestaComponent, configDialog);
+
+    dialogRef.afterClosed().subscribe(valid => {
+      if(valid){
+        reactivo.comentarios = valid;
+      }
+    });
+  }
+
   guardar(){
     if(this.concentradoForm.valid){
       let reporte_data = JSON.parse(JSON.stringify(this.concentradoForm.value));
@@ -193,10 +215,19 @@ export class DialogoChecklistFormComponent implements OnInit {
             let errorMessage = response.error.message;
             this.sharedService.showSnackBar(errorMessage, null, 3000);
           } else {
-            console.log('guardado =====================================================');
-            //this.dialogRef.close(true);
+            let reporte = response.data;
+            let item_reporte = {
+              id: reporte.id,
+              auditoria_id: reporte.auditoria.id,
+              auditoria: reporte.auditoria.descripcion,
+              total_reactivos: reporte.total_checklist_reactivos,
+              total_no_aplica: reporte.respuestas[0].total_no_aplica,
+              total_positivos: reporte.respuestas[0].total_positivos,
+              total_pendientes: reporte.total_checklist_reactivos - reporte.respuestas[0].total_no_aplica - reporte.respuestas[0].total_positivos,
+              porcentaje_avance: (reporte.respuestas[0].total_positivos/(reporte.total_checklist_reactivos - reporte.respuestas[0].total_no_aplica))*100,
+            };
+            this.dialogRef.close({item_reporte:item_reporte, datos_concentrado:{enlace:reporte.enlace, fecha:reporte.fecha}});
           }
-          //this.isLoading = false;
         },
         errorResponse =>{
           this.isSaving = false;

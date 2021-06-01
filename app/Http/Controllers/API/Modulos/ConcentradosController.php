@@ -134,7 +134,18 @@ class ConcentradosController extends Controller
                 }
             }
 
-            $return_data['data'] = $request->all();
+            $concentrado = Reporte::select('reportes.*', DB::raw('COUNT(checklists_reactivos.id) as total_checklist_reactivos'))
+                                    ->leftjoin('checklists','checklists.id','=','reportes.checklist_id')
+                                    ->leftjoin('checklists_titulos','checklists_titulos.checklist_id','=','checklists.id')
+                                    ->leftjoin('checklists_reactivos','checklists_reactivos.checklist_titulo_id','=','checklists_titulos.id')
+                                    ->groupBy('reportes.id')
+                                    ->with(['auditoria','respuestas'=>function($respuestas){
+                                        $respuestas->select('reportes_respuestas.reporte_id', DB::raw('COUNT(IF(reportes_respuestas.tiene_informacion,1,NULL)) as total_positivos'), DB::raw('COUNT(IF(reportes_respuestas.no_aplica,1,NULL)) as total_no_aplica'))
+                                                    ->groupBy('reporte_id');
+                                    }])
+                                    ->where('reportes.id',$reporte->id)->first();
+
+            $return_data['data'] = $concentrado;
 
             return response()->json($return_data,HttpResponse::HTTP_OK);
         }catch(\Exception $e){
