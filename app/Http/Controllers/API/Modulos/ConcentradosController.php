@@ -5,6 +5,9 @@ namespace App\Http\Controllers\API\Modulos;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
 
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\ConcentradoExport;
+
 use App\Http\Controllers\Controller;
 
 use App\Http\Requests;
@@ -163,6 +166,35 @@ class ConcentradosController extends Controller
     public function destroy($id)
     {
         //
+    }
+    public function exportExcel(Request $request){
+        ini_set('memory_limit', '-1');
+        try{
+            $parametros = $request->all();
+            $auth_user = auth()->user();
+            $resultado = Checklist::with('titulos.reactivos')->where('activo',1)->first();
+
+            $concentrado = Reporte::select('reportes.*', DB::raw('COUNT(checklists_reactivos.id) as total_checklist_reactivos'))
+                                    ->leftjoin('checklists','checklists.id','=','reportes.checklist_id')
+                                    ->leftjoin('checklists_titulos','checklists_titulos.checklist_id','=','checklists.id')
+                                    ->leftjoin('checklists_reactivos','checklists_reactivos.checklist_titulo_id','=','checklists_titulos.id')
+                                    ->groupBy('reportes.id')
+                                    ->with(['concentrado.proyecto.direccion','auditoria','respuestas'=>function($respuestas){
+                                        $respuestas->select('reportes_respuestas.reporte_id', DB::raw('COUNT(IF(reportes_respuestas.tiene_informacion,1,NULL)) as total_positivos'), DB::raw('COUNT(IF(reportes_respuestas.no_aplica,1,NULL)) as total_no_aplica'))
+                                                    ->groupBy('reporte_id');
+                                    }])
+                                    ->where('reportes.id',$parametros['id'])->first();
+
+            $filename = 'concentrado';
+            $data = [
+                'checklist' => $resultado,
+                'concentrado' => $concentrado
+            ];
+            
+            return (new ConcentradoExport($data))->download($filename.'.xlsx');
+        }catch(\Exception $e){
+            return response()->json(['error' => $e->getMessage(),'line'=>$e->getLine()], HttpResponse::HTTP_CONFLICT);
+        }
     }
 
     private function getUserAccessData($loggedUser = null){

@@ -5,6 +5,7 @@ import { ConcentradosService  } from '../concentrados.service';
 import { SharedService } from '../../shared/shared.service';
 import { MatDialog } from '@angular/material/dialog';
 import { DialogoChecklistFormComponent } from '../dialogo-checklist-form/dialogo-checklist-form.component';
+import * as FileSaver from 'file-saver';
 
 export interface ConcentradoDialogData {
   id?: number;
@@ -29,6 +30,7 @@ export class DialogoConcentradoProyectoComponent implements OnInit {
 
   isSaving:boolean = false;
   isLoading:boolean = false;
+  isLoadingExcel:boolean = false;
 
   proyectoId:number;
   proyecto:any;
@@ -106,7 +108,22 @@ export class DialogoConcentradoProyectoComponent implements OnInit {
   }
 
   imprimir(){
-    //
+    this.isLoadingExcel = true;
+    let id = this.reportes[0].id;
+    this.concentradosService.exportarReporte({id: id}).subscribe(
+      response => {
+        FileSaver.saveAs(response,'reporte');
+        this.isLoadingExcel = false;
+      },
+      errorResponse =>{
+        var errorMessage = "Ocurrió un error.";
+          if(errorResponse.status == 409){
+            errorMessage = errorResponse.error.message;
+          }
+          this.sharedService.showSnackBar(errorMessage, null, 3000);
+          this.isLoadingExcel = false;
+      }
+    );
   }
 
   openChecklist(){

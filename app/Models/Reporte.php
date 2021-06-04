@@ -22,5 +22,10 @@ class Reporte extends Model
     public function auditoria(){
         return $this->belongsTo('App\Models\Auditoria','auditoria_id');
     }
+
+    public function concentrado(){
+        return $this->belongsTo('App\Models\Concentrado','concentrado_id');
+    }
+
 }
 

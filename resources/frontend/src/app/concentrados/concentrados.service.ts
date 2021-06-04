@@ -14,6 +14,7 @@ export class ConcentradosService {
   url_checklist = `${environment.base_url}/concentrado-checklist`;
   url_respuestas =  `${environment.base_url}/reporte-respuestas`;
   url_reporte =  `${environment.base_url}/guardar-reporte`;
+  url_export =  `${environment.base_url}/exportar-concentrado`;
 
   constructor(private http: HttpClient) { }
 
@@ -55,5 +56,9 @@ export class ConcentradosService {
         return response;
       }
     ));
+  }
+
+  exportarReporte(payload):Observable<any>{
+    return this.http.get<any>(this.url_export, {params:payload, responseType: 'blob' as 'json'});
   }
 }
