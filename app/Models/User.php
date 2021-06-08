@@ -59,6 +59,14 @@ class User extends Authenticatable implements JWTSubject{
         return $this->belongsToMany('App\Models\Permission')->withPivot('status');
     }
 
+    public function direcciones(){
+        return $this->belongsToMany('App\Models\Direccion','usuarios_direcciones_proyectos','user_id','direccion_id')->withPivot('todos_proyectos')->wherePivot('todos_proyectos', 1);;
+    }
+
+    public function proyectos(){
+        return $this->belongsToMany('App\Models\Proyecto','usuarios_direcciones_proyectos','user_id','proyecto_id')->withPivot('direccion_id');
+    }
+
     //Funciones para validación y obtención de permisos del usuario.
 
     //Aplica sobre un objeto usuario

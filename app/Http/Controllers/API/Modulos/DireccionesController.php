@@ -11,16 +11,15 @@ use App\Http\Requests;
 
 use DB;
 
-use App\Models\Proyecto;
+use App\Models\Direccion;
 
-class ProyectosController extends Controller
+class DireccionesController extends Controller
 {
 
-    public function datosCatalogo(){
+    public function datosDirecciones(){
         try{
-            $data = [];
-            $data = $this->getUserAccessData();
-
+            $data = Direccion::with('proyectos')->get();
+            
             return response()->json(['data'=>$data],HttpResponse::HTTP_OK);
         }catch(\Exception $e){
             return response()->json(['error'=>['message'=>$e->getMessage(),'line'=>$e->getLine()]], HttpResponse::HTTP_CONFLICT);
@@ -34,38 +33,29 @@ class ProyectosController extends Controller
     public function index(Request $request)
     {
         try{
-            $accessData = $this->getUserAccessData();
             $parametros = $request->all();
             
-            $proyectos = Proyecto::with('direccion');
+            $direcciones = Direccion::getModel();
             
             //Filtros, busquedas, ordenamiento
             if(isset($parametros['query']) && $parametros['query']){
-                $proyectos = $proyectos->where(function($query)use($parametros){
+                $direcciones = $direcciones->where(function($query)use($parametros){
                     return $query->where('clave','LIKE','%'.$parametros['query'].'%')
-                                ->orWhere('descripcion','LIKE','%'.$parametros['query'].'%')
-                                ->orWhere('direccion','LIKE','%'.$parametros['query'].'%');
+                                ->orWhere('descripcion','LIKE','%'.$parametros['query'].'%');
                 });
             }
-
-            if(!$accessData->is_superuser){
-                $proyectos = $proyectos->where(function($query)use($accessData){
-                                                    $query->whereIn('direccion_id',$accessData->direcciones_ids)
-                                                            ->orWhereIn('id',$accessData->proyectos_ids);
-                                                });
-            }
             
-            $proyectos = $proyectos->orderBy('updated_at','desc');
+            $direcciones = $direcciones->orderBy('updated_at','desc');
 
             if(isset($parametros['page'])){
                 $resultadosPorPagina = isset($parametros["per_page"])? $parametros["per_page"] : 20;
-                $proyectos = $proyectos->paginate($resultadosPorPagina);
+                $direcciones = $direcciones->paginate($resultadosPorPagina);
 
             } else {
-                $proyectos = $proyectos->get();
+                $direcciones = $direcciones->get();
             }
 
-            return response()->json(['data'=>$proyectos],HttpResponse::HTTP_OK);
+            return response()->json(['data'=>$direcciones],HttpResponse::HTTP_OK);
         }catch(\Exception $e){
             return response()->json(['error'=>['message'=>$e->getMessage(),'line'=>$e->getLine()]], HttpResponse::HTTP_CONFLICT);
         }
@@ -123,13 +113,23 @@ class ProyectosController extends Controller
             $loggedUser = auth()->userOrFail();
         }
         
-        $loggedUser->load('direcciones','proyectos');
+        //$loggedUser->load('grupos.unidadesMedicas','grupos.unidadMedicaPrincipal');
+        
+        //$lista_clues = [];
+        /*foreach ($loggedUser->grupos as $grupo) {
+            $lista_unidades = $grupo->unidadesMedicas->toArray();
+            
+            $lista_clues += $lista_clues + $lista_unidades;
+        }*/
+        //$accessData->lista_clues = $lista_clues;
 
         $accessData = (object)[];
 
-        $accessData->direcciones_ids = $loggedUser->direcciones->pluck('id');
-        $accessData->proyectos_ids = $loggedUser->proyectos->pluck('id');
-        $accessData->is_superuser = $loggedUser->is_superuser;
+        /*if (\Gate::allows('has-permission', \Permissions::ADMIN_PERSONAL_ACTIVO)){
+            $accessData->is_admin = true;
+        }else{
+            $accessData->is_admin = false;
+        }*/
 
         return $accessData;
     }

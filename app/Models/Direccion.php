@@ -10,4 +10,8 @@ class Direccion extends Model
     use SoftDeletes;
     protected $table = 'direcciones';
     protected $fillable = ['clave','descripcion'];
+
+    public function proyectos(){
+        return $this->hasMany('App\Models\Proyecto','direccion_id');
+    }
 }

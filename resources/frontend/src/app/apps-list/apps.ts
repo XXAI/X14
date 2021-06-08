@@ -10,7 +10,7 @@ export class App {
 }
 
 export const APPS:App [] = [
-    { name:"Proyectos",     route: "proyectos",         icon: "assets/icons/concentrados.svg", },
+    { name:"Proyectos",     route: "proyectos",         icon: "assets/icons/concentrados.svg",       permission:"BG4ZAI7BqpSs7Z0EsbqQkU3JZtGCkRrO" },
     { name:"Usuarios",      route: "usuarios",          icon: "assets/icons/users.svg",              permission:"nTSk4Y4SFKMyQmRD4ku0UCiNWIDe8OEt" },
     { name:'Permisos',      route: "permisos",          icon: "assets/icons/security-shield.svg",    permission:"RGMUpFAiRuv7UFoJroHP6CtvmpoFlQXl" },
     { name:'Roles',         route: "roles",             icon: "assets/icons/users-roles.svg",        permission:"nrPqEhq2TX0mI7qT7glaOCJ7Iqx2QtPs" },

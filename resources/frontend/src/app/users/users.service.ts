@@ -14,6 +14,7 @@ export class UsersService {
   url_catalogs = `${environment.base_url}/user-catalogs`;
   url_permission = `${environment.base_url}/permission`;
   url_avatars = `${environment.base_url}/avatar-images`;
+  url_direcciones = `${environment.base_url}/catalogo-direcciones`;
 
   constructor(private http: HttpClient) { }
 
@@ -43,6 +44,14 @@ export class UsersService {
 
   getAllPermissions():Observable<any> {
     return this.http.get<any>(this.url_permission,{}).pipe(
+      map( response => {
+        return response;
+      })
+    );
+  }
+
+  getAllDirecciones():Observable<any> {
+    return this.http.get<any>(this.url_direcciones,{}).pipe(
       map( response => {
         return response;
       })

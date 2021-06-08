@@ -20,6 +20,7 @@ class ConcentradoChecklistExport implements FromCollection, WithEvents, WithTitl
 
     protected $rows_titulos = [];
     protected $rows_secciones = [];
+    protected $rows_no_aplica = [];
 
     public function __construct($data){
         //
@@ -56,10 +57,22 @@ class ConcentradoChecklistExport implements FromCollection, WithEvents, WithTitl
 
             $table_data[] = ['','','SI','NO',''];
             $row_actual++;
+            $control_reactivos_consecutivos = 0;
 
             foreach ($titulo->reactivos as $reactivo) {
-                $table_data[] = [$reactivo->orden,$reactivo->descripcion,'','',''];
                 $row_actual++;
+                if($reactivo->no_aplica){
+                    $table_data[] = [$reactivo->orden,$reactivo->descripcion,'N/A','N/A','N/A'];
+
+                    if($control_reactivos_consecutivos == $reactivo->id){
+                        $this->rows_no_aplica[(count($this->rows_no_aplica)-1)]['conteo'] += 1;
+                    }else{
+                        $this->rows_no_aplica[] = ['row_inicio'=>$row_actual, 'conteo'=>0];
+                    }
+                    $control_reactivos_consecutivos = $reactivo->id + 1;
+                }else{
+                    $table_data[] = [$reactivo->orden,$reactivo->descripcion,($reactivo->tiene_informacion)?'X':'',($reactivo->tiene_informacion)?'':'X',$reactivo->comentarios];
+                }
             }
 
             $table_data[] = ['','','','',''];
@@ -118,6 +131,15 @@ class ConcentradoChecklistExport implements FromCollection, WithEvents, WithTitl
                     ]
                 );
 
+                $event->sheet->styleCells(
+                    'C4:D'.($event->sheet->getHighestRow()),
+                    [
+                        'alignment' => [
+                            'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+                        ]
+                    ]
+                );
+
                 //repetir por cada seccion
                 foreach ($this->rows_secciones as $row) {
                     $event->sheet->getDelegate()->mergeCells('A'.$row.':'.$event->sheet->getHighestColumn().$row);
@@ -153,7 +175,6 @@ class ConcentradoChecklistExport implements FromCollection, WithEvents, WithTitl
                         $event->sheet->getDelegate()->mergeCells('A'.$row.':B'.$row);
                         $event->sheet->getDelegate()->mergeCells('A'.($row+1).':B'.($row+2));
                         $event->sheet->getDelegate()->mergeCells('C'.$row.':D'.($row+1));
-                        //$event->sheet->getDelegate()->getRowDimension($row)->setRowHeight(32.3);
                         $event->sheet->getDelegate()->mergeCells('E'.$row.':E'.($row+2));
                     }
                     
@@ -178,6 +199,12 @@ class ConcentradoChecklistExport implements FromCollection, WithEvents, WithTitl
                         ]
                     );
                 }
+
+                //Agrupar todos los N/A
+                foreach ($this->rows_no_aplica as $rows) {
+                    $event->sheet->getDelegate()->mergeCells('C'.$rows['row_inicio'].':'.$event->sheet->getHighestColumn().($rows['row_inicio']+$rows['conteo']));
+                }
+                
                 $event->sheet->getDelegate()->getStyle('A1:'.($event->sheet->getHighestColumn()).$event->sheet->getHighestRow())->getAlignment()->setWrapText(true);
             }
         ];

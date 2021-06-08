@@ -43,7 +43,8 @@ export class FormComponent implements OnInit {
     'is_superuser': [false],
     'avatar': [''],
     'roles': [[]],
-    'permissions': [[]]
+    'permissions': [[]],
+    'direcciones': [[]],
   });
 
   avatarList: any[] = [];
@@ -80,6 +81,7 @@ export class FormComponent implements OnInit {
   selectedDireccionesControl:any = {};
   selectedDirecciones: any[] = [];
   selectedDireccionProyectos: any[] = [];
+  selectedDireccionTodos:boolean;
   assignedProyectos: any[] = [];
   deniedProyectos: any[] = [];
   selectedDireccionChipId: number = 0;
@@ -91,8 +93,9 @@ export class FormComponent implements OnInit {
 
     let callRolesCatalog = this.usersService.getAllRoles();
     let callPermissionsCatalog = this.usersService.getAllPermissions();
+    let callDireccionesCatalog = this.usersService.getAllDirecciones();
 
-    let httpCalls = [callRolesCatalog, callPermissionsCatalog];
+    let httpCalls = [callRolesCatalog, callPermissionsCatalog, callDireccionesCatalog];
 
     this.route.paramMap.subscribe(params => {
       if(params.get('id')){
@@ -108,7 +111,7 @@ export class FormComponent implements OnInit {
 
       this.isLoading = true;
 
-      //Calls: 0 => Roles, 1 => Permissions, 2 => User
+      //Calls: 0 => Roles, 1 => Permissions, 2 => Direcciones, 3 => User
       forkJoin(httpCalls).subscribe(
         results => {
           console.log(results);
@@ -137,9 +140,21 @@ export class FormComponent implements OnInit {
           );
           //Ends: Permissions
 
+          //Starts: Roles
+          this.catalogDirecciones = results[2].data;
+          this.listOfDirecciones$ = of(this.catalogDirecciones);
+          this.filteredDirecciones$ = combineLatest(this.listOfDirecciones$,this.filterInputDirecciones$).pipe(
+            map(
+              ([direcciones,filterString]) => direcciones.filter(
+                direccion => (direccion.descripcion.toLowerCase().indexOf(filterString.toLowerCase()) !== -1)
+              )
+            )
+          );
+          //Ends: Roles
+
           //Starts: User
-          if(results[2]){
-            this.usuario = results[2];
+          if(results[3]){
+            this.usuario = results[3];
             this.usuarioForm.patchValue(this.usuario);
 
             this.selectedAvatar = this.usuario.avatar;
@@ -163,6 +178,57 @@ export class FormComponent implements OnInit {
                   inRoles:[]
                 }
                 this.selectedPermissions.push(permission);
+              }
+            }
+
+            //Load direcciones
+            for(let i in this.usuario.direcciones){
+              let direccion_id = this.usuario.direcciones[i].id;
+              let direccion_index = this.catalogDirecciones.findIndex(item => item.id == direccion_id);
+              let direccion = this.catalogDirecciones[direccion_index];
+              direccion.todos = true;
+
+              this.selectedDireccionesControl[direccion.id] = true;
+              this.selectedDirecciones.push(direccion);
+
+              for(let i in direccion.proyectos){
+                let proyecto = direccion.proyectos[i];
+                
+                if(!this.assignedProyectos[proyecto.id]){
+                  this.assignedProyectos[proyecto.id] = {
+                    active: true,
+                    clave: proyecto.clave,
+                    descripcion: proyecto.descripcion,
+                    id: proyecto.id,
+                    direccion_id: proyecto.direccion_id
+                  }
+                }
+              }
+            }
+
+            //Load proyectos
+            for(let i in this.usuario.proyectos){
+              let direccion_id = this.usuario.proyectos[i].direccion_id;
+              
+              if(!this.selectedDireccionesControl[direccion_id]){
+                let direccion_index = this.catalogDirecciones.findIndex(item => item.id == direccion_id);
+                let direccion = this.catalogDirecciones[direccion_index];
+                direccion.todos = false;
+
+                this.selectedDireccionesControl[direccion.id] = true;
+                this.selectedDirecciones.push(direccion);
+              }
+
+              let proyecto = this.usuario.proyectos[i];
+              
+              if(!this.assignedProyectos[proyecto.id]){
+                this.assignedProyectos[proyecto.id] = {
+                  active: true,
+                  clave: proyecto.clave,
+                  descripcion: proyecto.descripcion,
+                  id: proyecto.id,
+                  direccion_id: proyecto.direccion_id
+                }
               }
             }
           }
@@ -290,35 +356,30 @@ export class FormComponent implements OnInit {
   }
 
   removeDireccion(index){
-    let role = this.selectedRoles[index];
-    this.selectedRoles.splice(index,1);
-    this.selectedRolesControl[role.id] = false;
+    let direccion = this.selectedDirecciones[index];
+    this.selectedDirecciones.splice(index,1);
+    this.selectedDireccionesControl[direccion.id] = false;
 
-    if(role.id == this.selectedRoleChipId){
-      this.selectedRoleChipId = 0;
+    if(direccion.id == this.selectedDireccionChipId){
+      this.selectedDireccionChipId = 0;
     }
 
-    for(let i in role.permissions){
-      let permission = role.permissions[i];
-      let indexOfRole = this.assignedPermissions[permission.id].inRoles.indexOf(role.id);
-      this.assignedPermissions[permission.id].inRoles.splice(indexOfRole,1);
-
-      if(this.assignedPermissions[permission.id].inRoles.length <= 0){
-        delete this.assignedPermissions[permission.id];
-      }
+    for(let i in direccion.proyectos){
+      let proyecto = direccion.proyectos[i];
+      delete this.assignedProyectos[proyecto.id];
     }
     //this.usuarioForm.get('roles').patchValue(this.selectedRoles);
   }
 
   selectDireccion(direccion){
-    //Si el Rol no esta seleccionado
+    //Si la Dirección no esta seleccionada
     if(!this.selectedDireccionesControl[direccion.id]){
-
+      direccion.todos = true;
       //Lo agregamos a la lista de Direcciones;
       this.selectedDirecciones.push(direccion);
       this.selectedDireccionesControl[direccion.id] = true; 
       
-      //Agregamos los permisos de la direccion a un arreglo global de permisos
+      //Agregamos los proyectos de la direccion a un arreglo global de proyectos
       for(let i in direccion.proyectos){
         let proyecto = direccion.proyectos[i];
         
@@ -326,28 +387,66 @@ export class FormComponent implements OnInit {
           this.assignedProyectos[proyecto.id] = {
             active: true,
             clave: proyecto.clave,
-            description: proyecto.description,
+            descripcion: proyecto.descripcion,
+            id: proyecto.id,
+            direccion_id: proyecto.direccion_id
           }
-        }else{
-          //this.assignedProyectos[proyecto.id].inRoles.push(direccion.id);
         }
       }
 
       this.showProyectosList(direccion);
       //this.usuarioForm.get('roles').patchValue(this.selectedRoles);
     }else{
-      //Si el rol ya esta seleccionado, lo quitamos
+      //Si la Dirección ya esta seleccionada, la quitamos
       let direccionIndex = this.selectedDirecciones.findIndex(item => item.id == direccion.id);
       this.removeDireccion(direccionIndex);
     }
   }
 
   showProyectosList(direccion){ 
-    //
+    this.selectedDireccionChipId = direccion.id; 
+    this.selectedDireccionProyectos = [];
+
+    this.selectedDireccionTodos = direccion.todos;
+
+    for(let i in direccion.proyectos){
+      let proyecto = direccion.proyectos[i];
+      if(this.assignedProyectos[proyecto.id]){
+        proyecto.active = this.assignedProyectos[proyecto.id].active;
+      }else{
+        proyecto.active = false;
+      }
+      
+      this.selectedDireccionProyectos.push(proyecto);
+    }
+  }
+
+  changeDireccionStatus(direccionId){
+    let direccionIndex = this.selectedDirecciones.findIndex(item => item.id == direccionId);
+    let direccion = this.selectedDirecciones[direccionIndex];
+    direccion.todos = !direccion.todos;
+    this.selectedDireccionTodos = direccion.todos;
   }
 
   changeProyectoStatus(proyecto){
-    //
+    if(this.assignedProyectos[proyecto.id]){
+      this.assignedProyectos[proyecto.id].active = !this.assignedProyectos[proyecto.id].active;
+    }else{
+      this.assignedProyectos[proyecto.id] = {
+        active: true,
+        clave: proyecto.clave,
+        descripcion: proyecto.descripcion,
+        id: proyecto.id,
+        direccion_id: proyecto.direccion_id
+      }
+      if(!this.selectedDireccionesControl[proyecto.direccion_id]){
+        let direccion_index = this.catalogDirecciones.findIndex(item => item.id == proyecto.direccion_id);
+        let direccion = this.catalogDirecciones[direccion_index];
+
+        this.selectedDirecciones.push(direccion);
+        this.selectedDireccionesControl[direccion.id] = true;
+      }
+    }
   }
 
   accionGuardar(){
@@ -378,6 +477,7 @@ export class FormComponent implements OnInit {
 
     let roles = [];
     let permissions = {};
+    let direcciones = {};
 
     for(let id in this.assignedPermissions){
       let permission = this.assignedPermissions[id];
@@ -395,6 +495,23 @@ export class FormComponent implements OnInit {
       }
     }
 
+    for(let i in this.selectedDirecciones){
+      let direccion = this.selectedDirecciones[i];
+      if(direccion.todos){
+        direcciones[direccion.id] = {todos:true};
+      }else{
+        direcciones[direccion.id] = {todos:false, proyectos:[]};
+      }
+    }
+
+    for(let i in this.assignedProyectos){
+      let proyecto = this.assignedProyectos[i];
+      if(proyecto.active && !direcciones[proyecto.direccion_id].todos){
+        direcciones[proyecto.direccion_id].proyectos.push(proyecto);
+      }
+    }
+    
+    this.usuarioForm.get('direcciones').patchValue(direcciones);
     this.usuarioForm.get('permissions').patchValue(permissions);
     this.usuarioForm.get('roles').patchValue(roles);
 

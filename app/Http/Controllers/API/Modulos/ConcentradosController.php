@@ -172,22 +172,29 @@ class ConcentradosController extends Controller
         try{
             $parametros = $request->all();
             $auth_user = auth()->user();
-            $resultado = Checklist::with('titulos.reactivos')->where('activo',1)->first();
-
+            
             $concentrado = Reporte::select('reportes.*', DB::raw('COUNT(checklists_reactivos.id) as total_checklist_reactivos'))
                                     ->leftjoin('checklists','checklists.id','=','reportes.checklist_id')
                                     ->leftjoin('checklists_titulos','checklists_titulos.checklist_id','=','checklists.id')
                                     ->leftjoin('checklists_reactivos','checklists_reactivos.checklist_titulo_id','=','checklists_titulos.id')
                                     ->groupBy('reportes.id')
                                     ->with(['concentrado.proyecto.direccion','auditoria','respuestas'=>function($respuestas){
-                                        $respuestas->select('reportes_respuestas.reporte_id', DB::raw('COUNT(IF(reportes_respuestas.tiene_informacion,1,NULL)) as total_positivos'), DB::raw('COUNT(IF(reportes_respuestas.no_aplica,1,NULL)) as total_no_aplica'))
+                                        $respuestas->select('reportes_respuestas.reporte_id', DB::raw('COUNT(IF(reportes_respuestas.tiene_informacion,1,NULL)) as total_positivos'), 
+                                                            DB::raw('COUNT(IF(reportes_respuestas.no_aplica,1,NULL)) as total_no_aplica'))
                                                     ->groupBy('reporte_id');
                                     }])
                                     ->where('reportes.id',$parametros['id'])->first();
+            $reporte_id = $parametros['id'];
+            $checklist = Checklist::with(['titulos.reactivos'=>function($reactivos)use($reporte_id){
+                $reactivos->select('checklists_reactivos.*','reportes_respuestas.tiene_informacion','reportes_respuestas.no_aplica','reportes_respuestas.comentarios')
+                            ->leftjoin('reportes_respuestas',function($join)use($reporte_id){
+                                $join->on('reportes_respuestas.checklist_reactivo_id','=','checklists_reactivos.id')->where('reportes_respuestas.reporte_id',$reporte_id)->whereNull('reportes_respuestas.deleted_at');
+                            });
+            }])->where('activo',1)->first();
 
             $filename = 'concentrado';
             $data = [
-                'checklist' => $resultado,
+                'checklist' => $checklist,
                 'concentrado' => $concentrado
             ];
             

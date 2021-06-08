@@ -39,6 +39,7 @@ Route::group(['middleware'=>'auth'],function($router){
 
     //Modulos del Sistema
     Route::apiResource('proyectos',              'API\Modulos\ProyectosController')->only(['index','show']);
+    Route::get('catalogo-direcciones',           'API\Modulos\DireccionesController@datosDirecciones');
     Route::get('concentrado-proyecto/{id}',      'API\Modulos\ConcentradosController@obtenerConcentrado');
     Route::get('concentrado-checklist',          'API\Modulos\ConcentradosController@obtenerChecklist');
     Route::get('reporte-respuestas',             'API\Modulos\ConcentradosController@obtenerReporte');
